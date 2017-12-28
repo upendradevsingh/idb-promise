@@ -2,7 +2,7 @@
   "name": "idb-promise",
   "version": "0.0.1",
   "description": "Promise based IndexedDB implementation",
-  "main": "\t",
+  "main": "idb.js",
   "scripts": {
     "test": "jest"
   },
