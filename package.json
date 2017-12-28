@@ -1,6 +1,6 @@
 {
   "name": "idb-promise",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Promise based IndexedDB implementation",
   "main": "idb.js",
   "scripts": {
