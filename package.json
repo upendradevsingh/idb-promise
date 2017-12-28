@@ -1,0 +1,24 @@
+{
+  "name": "idb-promise",
+  "version": "0.0.1",
+  "description": "Promise based IndexedDB implementation",
+  "main": "\t",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/upendradevsingh/idb-promise.git"
+  },
+  "keywords": [
+    "idb",
+    "indexeddb",
+    "promosified-indexeddb"
+  ],
+  "author": "Upendra Dev Singh <upendradevsingh@outlook.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/upendradevsingh/idb-promise/issues"
+  },
+  "homepage": "https://github.com/upendradevsingh/idb-promise#readme"
+}
