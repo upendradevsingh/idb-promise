@@ -127,7 +127,6 @@ export default class Storage {
             const transaction = db.transaction([store], 'readwrite');
             const objectStore = transaction.objectStore(store);
             const timestamp = Date.now();
-            console.log('idb#write() => ', timestamp, ...data);
             return resolve(objectStore.add({ ...data, timestamp }));
         });
     }
@@ -137,8 +136,15 @@ export default class Storage {
             const transaction = db.transaction([store], 'readwrite');
             const objectStore = transaction.objectStore(store);
             const timestamp = Date.now();
-            console.log('idb#update() => ', timestamp, ...data);
             return resolve(objectStore.put({ ...data, timestamp }));
+        });
+    }
+    delete (store, key) {
+        return new Promise(function (resolve, reject) {
+            var { db } = this;
+            var transaction = db.transaction([store], 'readwrite');
+            var objectStore = transaction.objectStore(store);
+            return resolve(objectStore.delete(key));
         });
     }
 }
