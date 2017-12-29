@@ -163,6 +163,16 @@
             return resolve(objectStore.put(Object.assign(data, timestamp)));
         });
     }
+    
+    Storage.prototype.delete = function (store, key) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            var db = _this.db;
+            var transaction = db.transaction([store], 'readwrite');
+            var objectStore = transaction.objectStore(store);
+            return resolve(objectStore.delete(key));
+        });
+    }
 
     return Storage;
 }));
