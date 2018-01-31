@@ -101,13 +101,13 @@ export default class Storage {
             });
     }
 
-    get(email, store) {
+    get(item, store) {
         return this.open()
             .then(db => {
                 return new Promise((resolve, reject) => {
                     const transaction = db.transaction([store], "readwrite");
                     const objectStore = transaction.objectStore(store);
-                    const index = objectStore.index("email");
+                    const index = objectStore.index(item);
                     const request = index.get(email);
 
                     request.onsuccess = function (event) {
@@ -126,8 +126,8 @@ export default class Storage {
             const db = this.db;
             const transaction = db.transaction([store], 'readwrite');
             const objectStore = transaction.objectStore(store);
-            const timestamp = Date.now();
-            return resolve(objectStore.add({ ...data, timestamp }));
+            const timestamp = Date.now() + ((maxAge || 0) * 1000);
+            return resolve(objectStore.put(Object.assign(data, { ttl: timestamp })));
         });
     }
     update(store, data) {
@@ -135,8 +135,8 @@ export default class Storage {
             const db = this.db;
             const transaction = db.transaction([store], 'readwrite');
             const objectStore = transaction.objectStore(store);
-            const timestamp = Date.now();
-            return resolve(objectStore.put({ ...data, timestamp }));
+            const timestamp = Date.now() + ((maxAge || 0) * 1000);
+            return resolve(objectStore.put(Object.assign(data, { ttl: timestamp })));
         });
     }
     delete (store, key) {
