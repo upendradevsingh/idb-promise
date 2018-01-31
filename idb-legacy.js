@@ -1,3 +1,6 @@
+/* eslint-env es6:false, amd */
+/* eslint-disable max-len, spaced-comment, func-names, prefer-arrow-callback, no-var */
+
 /*******************************************************************
  ******************** Promisified IndexedDB ************************
  *******************************************************************/
@@ -26,82 +29,84 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-/* jshint ignore:start */
-(function (factory, config) {
+(function (factory) {
     if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
-        module.exports = factory();;
+        module.exports = factory();
     } else if (typeof define === 'function' && typeof define.amd === 'object') {
         define([], function () {
             return factory();
         });
     } else {
-        var IDB = factory();
-        /* var config = {
-            version: 1,
-            dbName: 'JABONG',
-            options
-        }; */
-
-        window.__idb__ = new IDB(config.dbName, config.version, {
-            onupgradeneeded: config.options.onupgradeneeded
-        });
+        window.JBIndexedDB = factory();
     }
 }(function () {
     /**
-     * @description storage base class
      * @class Storage
+     * @description It's a wrapper class wraps IndexedDB and provides a promisfied IndexedDB APIs.
+     * 
+     * @param {string} dbName Database name
+     * @param {any} version Database version
+     * @param {any} options Database options
      */
     function Storage(dbName, version, options) {
         this.store = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
         this.db = null;
         this.dbName = dbName;
         this.dbVersion = version;
-        this.start(options);
+        this.boot(options);
     }
 
-    Storage.prototype.isStorageAvailable = function () {
-        return this.store !== 'undefined';
-    }
-    Storage.prototype.start = function (options) {
+    /**
+     * @description bootstraping module
+     * @param {any} options 
+     * @returns 
+     */
+    Storage.prototype.boot = function (options) {
         var store = this.store;
         var dbName = this.dbName;
         var dbVersion = this.dbVersion;
-        var _this = this;
+        var that = this;
 
         return new Promise(function (resolve, reject) {
             var request = store.open(dbName, dbVersion);
             var onupgradeneeded = options.onupgradeneeded;
-
-            request.onerror = function (event) {
-                return reject('Could not open this database!');
-            };
-
-            request.onsuccess = function (event) {
-                _this.db = event.target.result;
-                return resolve(_this.db);
-            };
 
             var defaults = function (event) {
                 var db = event.target.result;
                 if (event.oldVersion === 0) {
                     db.createObjectStore('defaultObjStore', { keyPath: 'id' });
                 }
-            }
+            };
+
+            request.onerror = function () {
+                return reject('Could not open this database!');
+            };
+
+            request.onsuccess = function (event) {
+                that.db = event.target.result;
+                return resolve(that.db);
+            };
 
             // This event is only implemented in recent browsers
             request.onupgradeneeded = onupgradeneeded || defaults;
         });
-    }
-
+    };
+    /**
+     * @description returns an existing db instance or creates one and returns the same
+     * @returns IDB instance
+     */
     Storage.prototype.open = function () {
-        return this.db ? Promise.resolve(this.db) : this.start();
-    }
-
+        return this.db ? Promise.resolve(this.db) : this.boot();
+    };
+    /**
+     * @description read records from given store
+     * @param {any} store IDB store
+     * @returns {promise} store records
+     */
     Storage.prototype.read = function (store) {
         return this.open()
             .then(function (db) {
-                return new Promise(function (resolve, reject) {
+                return new Promise(function (resolve) {
                     var transaction = db.transaction(store, 'readwrite');
                     var objectStore = transaction.objectStore(store);
                     var results = [];
@@ -117,62 +122,62 @@
                         }
                     };
 
-                    cursor.onerror = function (event) {
+                    cursor.onerror = function () {
                         resolve(results);
-                    }
-                });
-            });
-    }
-
-    Storage.prototype.get = function (email, store) {
-        return this.open()
-            .then(function (db) {
-                return new Promise(function (resolve, reject) {
-                    var transaction = db.transaction([store], 'readwrite');
-                    var objectStore = transaction.objectStore(store);
-                    var index = objectStore.index('email');
-                    var request = index.get(email);
-
-                    request.onsuccess = function (event) {
-                        return resolve(event.target.result);
                     };
-
-                    request.onerror = function (event) {
-                        resolve(event.target.result);
-                    }
                 });
             });
-    }
-    Storage.prototype.write = function (store, data) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            var db = _this.db;
+    };
+
+    /**
+     * @description creates a new record in the db
+     * @param {any} store IDB store
+     * @param {any} data record to be inserted into IDB
+     * @param {integer} maxAge time in milliseconds
+     * @returns {promise} inserted record
+     */
+    Storage.prototype.write = function (store, data, maxAge) {
+        var that = this;
+        return new Promise(function (resolve) {
+            var db = that.db;
             var transaction = db.transaction([store], 'readwrite');
             var objectStore = transaction.objectStore(store);
-            var timestamp = Date.now();
-            return resolve(objectStore.add(Object.assign(data, timestamp)));
+            var timestamp = Date.now() + ((maxAge || 0) * 1000);
+            return resolve(objectStore.put(Object.assign(data, { ttl: timestamp })));
         });
-    }
-    Storage.prototype.update = function (store, data) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            var db = _this.db;
+    };
+    /**
+     * @description updates given record of given store
+     * @param {string} store IDB store name
+     * @param {any} data a record to be updated in given store
+     * @param {integer} maxAge time in milliseconds
+     * @returns 
+     */
+    Storage.prototype.update = function (store, data, maxAge) {
+        var that = this;
+        return new Promise(function (resolve) {
+            var db = that.db;
             var transaction = db.transaction([store], 'readwrite');
             var objectStore = transaction.objectStore(store);
-            var timestamp = Date.now();
-            return resolve(objectStore.put(Object.assign(data, timestamp)));
+            var timestamp = Date.now() + ((maxAge || 0) * 1000);
+            return resolve(objectStore.put(Object.assign(data, { ttl: timestamp })));
         });
-    }
-    
+    };
+    /**
+     * @description deletes given record from the store
+     * @param {any} store IDB store
+     * @param {any} key unique key of record to be deleted
+     * @returns 
+     */
     Storage.prototype.delete = function (store, key) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            var db = _this.db;
+        var that = this;
+        return new Promise(function (resolve) {
+            var db = that.db;
             var transaction = db.transaction([store], 'readwrite');
             var objectStore = transaction.objectStore(store);
             return resolve(objectStore.delete(key));
         });
-    }
+    };
 
     return Storage;
 }));
